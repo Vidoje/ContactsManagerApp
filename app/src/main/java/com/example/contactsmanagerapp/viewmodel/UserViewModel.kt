@@ -9,7 +9,7 @@ import com.example.contactsmanagerapp.room.User
 import com.example.contactsmanagerapp.room.UserRepository
 import kotlinx.coroutines.launch
 
-class UserViewModel(private val repository: UserRepository): ViewModel(), Observable {
+class UserViewModel(private val repository: UserRepository) : ViewModel(), Observable {
     val users = repository.users
     private var isUpdateOrDelete = false
     private lateinit var userToUpdateOrDelete: User
@@ -26,46 +26,80 @@ class UserViewModel(private val repository: UserRepository): ViewModel(), Observ
     @Bindable
     val clearAllOrDeleteButtonText = MutableLiveData<String>()
 
-    init{
+    init {
         saveOrUpdateButtonText.value = "Save"
         clearAllOrDeleteButtonText.value = "Clear All"
     }
 
-    fun saveOrUpdate(){
-        val name = inputName.value!!
-        val email = inputEmail.value!!
+    fun saveOrUpdate() {
+        if (isUpdateOrDelete) {
+            //make update
+            userToUpdateOrDelete.name = inputName.value!!
+            userToUpdateOrDelete.email = inputEmail.value!!
+            update(userToUpdateOrDelete)
 
-        insert(User(0, name, email))
+        } else {
+            val name = inputName.value!!
+            val email = inputEmail.value!!
 
-        inputName.value = null
-        inputEmail.value = null
+            insert(User(0, name, email))
+
+            inputName.value = null
+            inputEmail.value = null
+        }
     }
 
     fun insert(user: User) = viewModelScope.launch {
         repository.insert(user)
     }
 
-    fun clearAllOrDelete(){
-        clearAll()
+    fun clearAllOrDelete() {
+        if(isUpdateOrDelete){
+            delete(userToUpdateOrDelete)
+        }else {
+            clearAll()
+        }
     }
 
     fun clearAll() = viewModelScope.launch {
         repository.deleteAll()
     }
 
-    fun update(user:User) = viewModelScope.launch {
+    fun update(user: User) = viewModelScope.launch {
         repository.update(user)
+
+        //reseting edit text and buttons
+        inputName.value = null
+        inputEmail.value = null
+        isUpdateOrDelete = false
+        saveOrUpdateButtonText.value = "Save"
+        clearAllOrDeleteButtonText.value = "Clear all"
     }
 
-    fun delete(user:User) = viewModelScope.launch {
+    fun delete(user: User) = viewModelScope.launch {
         repository.delete(user)
+
+        //reseting edit text and buttons
+        inputName.value = null
+        inputEmail.value = null
+        isUpdateOrDelete = false
+        saveOrUpdateButtonText.value = "Save"
+        clearAllOrDeleteButtonText.value = "Clear all"
     }
 
     override fun addOnPropertyChangedCallback(callback: Observable.OnPropertyChangedCallback?) {
-        TODO("Not yet implemented")
     }
 
     override fun removeOnPropertyChangedCallback(callback: Observable.OnPropertyChangedCallback?) {
-        TODO("Not yet implemented")
+    }
+
+    fun initUpdateAndDelete(user:User) {
+        //reseting edit text and buttons
+        inputName.value = user.name
+        inputEmail.value = user.email
+        isUpdateOrDelete = true
+        userToUpdateOrDelete = user
+        saveOrUpdateButtonText.value = "Update"
+        clearAllOrDeleteButtonText.value = "Delete"
     }
 }
